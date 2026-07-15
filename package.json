@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "wrangler dev",
     "build": "vite build && cp server/worker.js dist/_worker.js && echo '_worker.js' > dist/.assetsignore",
