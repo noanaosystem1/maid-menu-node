@@ -44,17 +44,16 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/supabase-js": "^2.49.1",
     "@tanstack/react-query": "^5.84.1",
-    "@types/ws": "^8.18.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "cors": "^2.8.5",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.7",
-    "express": "^4.22.2",
+    "express": "^4.21.2",
     "framer-motion": "^11.16.4",
     "lucide-react": "^0.475.0",
-    "pg": "^8.22.0",
+    "pg": "^8.13.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.54.2",
@@ -62,15 +61,19 @@
     "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
-    "ws": "^8.21.1"
+    "ws": "^8.18.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
     "@types/node": "^22.13.5",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
+    "@types/ws": "^8.5.14",
     "concurrently": "^9.1.2",
     "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.37.4",
@@ -78,9 +81,6 @@
     "eslint-plugin-react-refresh": "^0.4.18",
     "eslint-plugin-unused-imports": "^4.3.0",
     "globals": "^15.14.0",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.8.2",
-    "vite": "^6.1.0"
+    "typescript": "^5.8.2"
   }
 }
