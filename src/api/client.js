@@ -37,7 +37,7 @@ async function request(path, { method = "GET", body, useSameOrigin = false } = {
 
 export const api = {
   admin: {
-    login: (password) => request("/admin/login", { method: "POST", body: { password }, useSameOrigin: true }),
+    login: (password) => request("/admin/login", { method: "POST", body: { password }, useSameOrigin: false }),
   },
   rooms: {
     list: () => request("/rooms"),

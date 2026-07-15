@@ -36,6 +36,22 @@ function requireAdmin(req, res, next) {
 // REST API ENDPOINTS
 // ==========================================
 
+// POST /api/admin/login
+app.post("/api/admin/login", async (req, res) => {
+  try {
+    const { password } = req.body;
+    const expectedPassword = process.env.ADMIN_PASSWORD || "maid2024";
+
+    if (password === expectedPassword) {
+      res.json({ success: true, token: expectedPassword });
+    } else {
+      res.status(401).json({ error: "Unauthorized access" });
+    }
+  } catch (err) {
+    res.status(400).json({ error: "Bad request" });
+  }
+});
+
 // GET /api/health
 app.get("/api/health", async (req, res) => {
   try {
