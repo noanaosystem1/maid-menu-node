@@ -107,12 +107,26 @@ export default function Guest() {
       return;
     }
 
-    // Connect to WebSocket Durable Object if interactive and not already connected
+    // Connect to WebSocket Server if interactive and not already connected
     if (!socketRef.current) {
-      console.log(`[WebSocket] Entering interactive phase: ${currentPhase}. Connecting to RoomSession DO.`);
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/api/ws?roomId=${guestUser.roomId}&guestId=${guestUser.id}`;
+      console.log(`[WebSocket] Entering interactive phase: ${currentPhase}. Connecting to WebSocket Server.`);
 
+      let wsUrl = "";
+      const wsUrlEnv = import.meta.env.VITE_WS_URL;
+      const apiUrlEnv = import.meta.env.VITE_API_URL;
+
+      if (wsUrlEnv) {
+        wsUrl = `${wsUrlEnv}?roomId=${guestUser.roomId}&guestId=${guestUser.id}`;
+      } else if (apiUrlEnv && apiUrlEnv.startsWith("http")) {
+        const parsedUrl = new URL(apiUrlEnv);
+        const wsProtocol = parsedUrl.protocol === "https:" ? "wss:" : "ws:";
+        wsUrl = `${wsProtocol}//${parsedUrl.host}${parsedUrl.pathname}/ws?roomId=${guestUser.roomId}&guestId=${guestUser.id}`;
+      } else {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        wsUrl = `${protocol}//${window.location.host}/api/ws?roomId=${guestUser.roomId}&guestId=${guestUser.id}`;
+      }
+
+      console.log(`[WebSocket] Resolved WebSocket URL: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 

@@ -1,33 +1,33 @@
--- Supabase SQL Editor で実行してください
+-- PostgreSQL Database Schema representing the tables used in the Node.js API server.
+-- Use this schema in PostgreSQL / Supabase SQL Editor.
 
 CREATE TABLE IF NOT EXISTS rooms (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id VARCHAR(255) PRIMARY KEY,
   name TEXT NOT NULL,
-  phase TEXT NOT NULL DEFAULT 'WAITING',
-  created_date TIMESTAMPTZ NOT NULL DEFAULT now()
+  phase VARCHAR(50) NOT NULL DEFAULT 'WAITING',
+  created_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS guest_users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id VARCHAR(255) PRIMARY KEY,
   name TEXT NOT NULL,
-  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-
-  session_token TEXT NOT NULL UNIQUE,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  is_online BOOLEAN NOT NULL DEFAULT false,
+  room_id VARCHAR(255) NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  session_token VARCHAR(255) NOT NULL UNIQUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_online BOOLEAN NOT NULL DEFAULT FALSE,
   last_seen TIMESTAMPTZ,
-  created_date TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS menu_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id VARCHAR(255) PRIMARY KEY,
   name TEXT NOT NULL,
   price NUMERIC NOT NULL DEFAULT 0,
-  category TEXT NOT NULL DEFAULT 'food',
+  category VARCHAR(100) NOT NULL DEFAULT 'food',
   description TEXT,
   image_url TEXT,
   order_index INTEGER NOT NULL DEFAULT 0,
-  created_date TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_guest_users_room_id ON guest_users(room_id);

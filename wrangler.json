@@ -7,20 +7,6 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "MAID_CAFE_DO",
-        "class_name": "MaidCafeDO"
-      }
-    ]
-  },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["MaidCafeDO"]
-    }
-  ],
   "vars": {
     "ADMIN_PASSWORD": "maid2024"
   }
