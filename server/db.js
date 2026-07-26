@@ -11,19 +11,24 @@ export const pool = new Pool({
 export async function initDb() {
   console.log("[Database] Initializing PostgreSQL schemas...");
 
-  // Create tables inside transaction or sequential execution
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // Table: rooms
+    // Table: rooms (with reservation_time VARCHAR(50))
     await client.query(`
       CREATE TABLE IF NOT EXISTS rooms (
         id VARCHAR(255) PRIMARY KEY,
         name TEXT NOT NULL,
         phase VARCHAR(50) NOT NULL DEFAULT 'WAITING',
+        reservation_time VARCHAR(50),
         created_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Run safe migration in case table already exists without reservation_time column
+    await client.query(`
+      ALTER TABLE rooms ADD COLUMN IF NOT EXISTS reservation_time VARCHAR(50);
     `);
 
     // Table: guest_users

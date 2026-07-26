@@ -4,6 +4,7 @@ import { api } from "@/api/client";
 
 export default function CreateRoomModal({ onClose, onCreated }) {
   const [name, setName] = useState("");
+  const [reservationTime, setReservationTime] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -14,6 +15,7 @@ export default function CreateRoomModal({ onClose, onCreated }) {
       const room = await api.rooms.create({
         name: name.trim(),
         phase: "WAITING",
+        reservation_time: reservationTime || null,
       });
       onCreated(room);
       onClose();
@@ -45,6 +47,15 @@ export default function CreateRoomModal({ onClose, onCreated }) {
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors"
               autoFocus
               required
+            />
+          </div>
+          <div>
+            <label className="block text-gray-400 text-xs mb-2 uppercase tracking-widest">予約時間 (オプション)</label>
+            <input
+              type="time"
+              value={reservationTime}
+              onChange={(e) => setReservationTime(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition-colors"
             />
           </div>
           <div className="flex gap-2 pt-2">
