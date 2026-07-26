@@ -91,15 +91,15 @@ app.get("/api/rooms/:id", async (req, res) => {
 
 // POST /api/rooms (Requires Admin)
 app.post("/api/rooms", requireAdmin, async (req, res) => {
-  const { id, name, phase, reservation_time } = req.body;
+  const { id, name, phase } = req.body;
   const roomId = id || getUUID();
   const roomPhase = phase || "WAITING";
   const createdDate = new Date();
 
   try {
     const result = await pool.query(
-      "INSERT INTO rooms (id, name, phase, reservation_time, created_date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [roomId, name, roomPhase, reservation_time || null, createdDate]
+      "INSERT INTO rooms (id, name, phase, created_date) VALUES ($1, $2, $3, $4) RETURNING *",
+      [roomId, name, roomPhase, createdDate]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -111,7 +111,7 @@ app.post("/api/rooms", requireAdmin, async (req, res) => {
 // PATCH /api/rooms/:id (Requires Admin)
 app.patch("/api/rooms/:id", requireAdmin, async (req, res) => {
   const roomId = req.params.id;
-  const { name, phase, reservation_time } = req.body;
+  const { name, phase } = req.body;
 
   try {
     const currentRes = await pool.query("SELECT * FROM rooms WHERE id = $1", [roomId]);
@@ -122,11 +122,10 @@ app.patch("/api/rooms/:id", requireAdmin, async (req, res) => {
 
     const newName = name !== undefined ? name : current.name;
     const newPhase = phase !== undefined ? phase : current.phase;
-    const newReservationTime = reservation_time !== undefined ? reservation_time : current.reservation_time;
 
     const result = await pool.query(
-      "UPDATE rooms SET name = $1, phase = $2, reservation_time = $3 WHERE id = $4 RETURNING *",
-      [newName, newPhase, newReservationTime, roomId]
+      "UPDATE rooms SET name = $1, phase = $2 WHERE id = $3 RETURNING *",
+      [newName, newPhase, roomId]
     );
 
     // Broadcast phase update via Active WebSockets
@@ -508,142 +507,6 @@ server.on("upgrade", (request, socket, head) => {
     socket.destroy();
   }
 });
-
-// ==========================================
-// DISCORD TTS RESERVATION ANNOUNCEMENT SYSTEM
-// ==========================================
-
-async function sendDiscordTTS(messageText) {
-  const botToken = process.env.DISCORD_BOT_TOKEN;
-  const channelId = process.env.DISCORD_CHANNEL_ID;
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-
-  console.log(`[Discord] Attempting announcement: "${messageText}"`);
-
-  // 1. Try Discord Webhook if configured
-  if (webhookUrl) {
-    try {
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: messageText, tts: true }),
-      });
-      if (response.ok) {
-        console.log("[Discord] Webhook announcement sent successfully!");
-        return;
-      } else {
-        console.error(`[Discord] Webhook failed with status: ${response.status}`);
-      }
-    } catch (err) {
-      console.error("[Discord] Webhook error:", err);
-    }
-  }
-
-  // 2. Try Discord Bot Token + Channel ID if configured
-  if (botToken && channelId) {
-    try {
-      const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bot ${botToken}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ content: messageText, tts: true }),
-      });
-      if (response.ok) {
-        console.log("[Discord] Bot announcement sent successfully!");
-        return;
-      } else {
-        const text = await response.text();
-        console.error(`[Discord] Bot failed with status: ${response.status}. Response: ${text}`);
-      }
-    } catch (err) {
-      console.error("[Discord] Bot error:", err);
-    }
-  }
-
-  if (!webhookUrl && (!botToken || !channelId)) {
-    console.warn("[Discord] Announcement skipped. Discord environment variables not configured.");
-  }
-}
-
-const announcementTracker = {}; // key: roomId:HH:MM:YYYY-MM-DD, value: { warningSent, startSent, allInSent }
-
-async function checkReservationsAndAnnounce() {
-  try {
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const roomsRes = await pool.query("SELECT * FROM rooms");
-
-    for (const room of roomsRes.rows) {
-      if (!room.reservation_time) continue;
-
-      // Expect format "HH:MM", e.g. "14:30"
-      const parts = room.reservation_time.split(":");
-      if (parts.length !== 2) continue;
-
-      const hour = parseInt(parts[0], 10);
-      const minute = parseInt(parts[1], 10);
-      if (isNaN(hour) || isNaN(minute)) continue;
-
-      // Construct target slot date for today
-      const slotDate = new Date(now);
-      slotDate.setHours(hour, minute, 0, 0);
-
-      const diffMs = slotDate.getTime() - now.getTime();
-      const diffMins = diffMs / (1000 * 60);
-
-      const trackerKey = `${room.id}:${room.reservation_time}:${todayStr}`;
-      if (!announcementTracker[trackerKey]) {
-        announcementTracker[trackerKey] = {
-          warningSent: false,
-          startSent: false,
-          allInSent: false
-        };
-      }
-      const tracker = announcementTracker[trackerKey];
-
-      // 1. Remaining 5 minutes warning: between 4.5 and 5.5 minutes in the future
-      if (diffMins > 4.5 && diffMins <= 5.5 && !tracker.warningSent) {
-        await sendDiscordTTS(`【アナウンス】${room.reservation_time}の回、残り5分です。`);
-        tracker.warningSent = true;
-      }
-
-      // 2. Start time announcement: between -0.5 and 0.5 minutes (current slot minute)
-      if (diffMins <= 0.5 && diffMins > -0.5 && !tracker.startSent) {
-        await sendDiscordTTS(`【アナウンス】${room.reservation_time}の回、開始時刻です。`);
-        tracker.startSent = true;
-
-        // Check if all guests are already inside (online) at exact start
-        const guestsRes = await pool.query("SELECT * FROM guest_users WHERE room_id = $1", [room.id]);
-        const guests = guestsRes.rows;
-        const allOnline = guests.length > 0 && guests.every(g => g.is_online);
-
-        if (allOnline && !tracker.allInSent) {
-          await sendDiscordTTS(`【アナウンス】${room.reservation_time}の回、入場済みです。`);
-          tracker.allInSent = true;
-        }
-      }
-
-      // 3. Checked-in within 10 minutes: past start time but within 10 mins (between -0.5 and -10.0 minutes)
-      if (diffMins < -0.5 && diffMins >= -10.0 && !tracker.allInSent) {
-        const guestsRes = await pool.query("SELECT * FROM guest_users WHERE room_id = $1", [room.id]);
-        const guests = guestsRes.rows;
-        const allOnline = guests.length > 0 && guests.every(g => g.is_online);
-
-        if (allOnline) {
-          await sendDiscordTTS(`【アナウンス】${room.reservation_time}の回、全員入場完了しました。`);
-          tracker.allInSent = true;
-        }
-      }
-    }
-  } catch (err) {
-    console.error("[Scheduler] Error checking reservation times:", err);
-  }
-}
-
-// Start scheduler to run every 10 seconds
-setInterval(checkReservationsAndAnnounce, 10000);
 
 // Start Node.js application
 const port = process.env.PORT || 8080;

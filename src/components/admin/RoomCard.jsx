@@ -17,14 +17,7 @@ export default function RoomCard({ room, memberCount, onlineCount, onClick, onDe
                 {PHASE_LABELS[phase]}
               </span>
             </div>
-            <h3 className="text-white font-semibold text-lg truncate flex items-center gap-2">
-              {room.name}
-              {room.reservation_time && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-800 text-pink-400 font-mono text-xs font-semibold">
-                  🕒 {room.reservation_time}
-                </span>
-              )}
-            </h3>
+            <h3 className="text-white font-semibold text-lg truncate">{room.name}</h3>
             <p className="text-gray-600 text-xs mt-1 font-mono">{room.id?.slice(0, 8)}...</p>
           </div>
           <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0 mt-1" />

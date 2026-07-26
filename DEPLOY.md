@@ -83,9 +83,6 @@ Node.js アプリケーションをホストできる任意の PaaS（Render, Fl
    - **`PORT`**: `8080` (またはデプロイ先環境に合わせる)
    - **`DATABASE_URL`**: PostgreSQL データベースへの接続文字列 *(詳細は下記 3.2 参照)*
    - **`ADMIN_PASSWORD`**: Cloudflare Worker と同期させた、同一の管理者パスワード
-   - **`DISCORD_BOT_TOKEN`**: Discord ボットトークン (自動TTS音声アナウンス機能用)
-   - **`DISCORD_CHANNEL_ID`**: 音声アナウンスメッセージを投稿する特定のチャンネルID
-   - **`DISCORD_WEBHOOK_URL`**: 簡易的にDiscordへTTS投稿したい場合用のウェブフックURL (ボットトークンが無い場合の代替手段としてサポート)
 
 ---
 
@@ -101,7 +98,7 @@ Node.js アプリケーションをホストできる任意の PaaS（Render, Fl
 
 ### 3.2 接続用接続文字列（DATABASE_URL）の書き方
 
-Node.js サーバーから PostgreSQL へのセキュアなアクセスを確立するため、以下のフォーマットの接続文字列を `DATABASE_URL` 環境変数として登録します。
+Node.js サーバーから PostgreSQL へのセキュアなアクセスを確立するため、以下のフォーマット of 接続文字列を `DATABASE_URL` 環境変数として登録します。
 
 ```env
 DATABASE_URL=postgresql://[ユーザー名]:[パスワード]@[ホスト名]:[ポート番号]/[データベース名]?sslmode=require

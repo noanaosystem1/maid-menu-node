@@ -13,41 +13,6 @@ export default function AdminRoomDetail({ roomId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [advancing, setAdvancing] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
-  const [resTime, setResTime] = useState("");
-
-  // Update resTime input when room changes
-  useEffect(() => {
-    if (room?.reservation_time) {
-      setResTime(room.reservation_time);
-    } else {
-      setResTime("");
-    }
-  }, [room]);
-
-  const handleUpdateResTime = async () => {
-    if (!room) return;
-    try {
-      const updated = await api.rooms.update(room.id, { reservation_time: resTime || null });
-      setRoom(updated);
-      alert("予約時間を更新しました！");
-    } catch (err) {
-      console.error(err);
-      alert("更新に失敗しました。");
-    }
-  };
-
-  const handleClearResTime = async () => {
-    if (!room) return;
-    try {
-      const updated = await api.rooms.update(room.id, { reservation_time: null });
-      setRoom(updated);
-      setResTime("");
-      alert("予約時間をクリアしました。");
-    } catch (err) {
-      console.error(err);
-      alert("クリアに失敗しました。");
-    }
-  };
 
   const loadData = useCallback(async () => {
     try {
@@ -141,36 +106,6 @@ export default function AdminRoomDetail({ roomId, onBack }) {
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Reservation time settings */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest">予約枠設定</h2>
-          <div className="flex items-center gap-3">
-            <input
-              type="time"
-              value={resTime}
-              onChange={(e) => setResTime(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 text-white font-mono focus:outline-none focus:border-pink-500"
-            />
-            <button
-              onClick={handleUpdateResTime}
-              className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white font-semibold text-sm rounded-xl transition-all"
-            >
-              更新
-            </button>
-            {room.reservation_time && (
-              <button
-                onClick={handleClearResTime}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 font-semibold text-sm rounded-xl transition-all"
-              >
-                クリア
-              </button>
-            )}
-          </div>
-          {room.reservation_time && (
-            <p className="text-gray-500 text-xs">🕒 現在の枠時間: <strong className="text-pink-400">{room.reservation_time}</strong> (Discordでの自動TTSアナウンス対象です)</p>
-          )}
-        </div>
-
         {/* Phase controls */}
         <PhaseControls
           room={room}

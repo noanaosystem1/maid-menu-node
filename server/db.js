@@ -15,20 +15,14 @@ export async function initDb() {
   try {
     await client.query("BEGIN");
 
-    // Table: rooms (with reservation_time VARCHAR(50))
+    // Table: rooms
     await client.query(`
       CREATE TABLE IF NOT EXISTS rooms (
         id VARCHAR(255) PRIMARY KEY,
         name TEXT NOT NULL,
         phase VARCHAR(50) NOT NULL DEFAULT 'WAITING',
-        reservation_time VARCHAR(50),
         created_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
-    `);
-
-    // Run safe migration in case table already exists without reservation_time column
-    await client.query(`
-      ALTER TABLE rooms ADD COLUMN IF NOT EXISTS reservation_time VARCHAR(50);
     `);
 
     // Table: guest_users
