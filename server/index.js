@@ -89,9 +89,91 @@ app.get("/api/rooms/:id", async (req, res) => {
   }
 });
 
+// POST /api/rooms-with-guests (Atomic Unified API, Requires Admin)
+app.post("/api/rooms-with-guests", requireAdmin, async (req, res) => {
+  const { roomName, guests } = req.body;
+
+  if (!roomName) {
+    return res.status(400).json({ error: "roomName is required" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 1. Create Room
+    const roomId = getUUID();
+    const roomPhase = "WAITING";
+    const createdDate = new Date();
+
+    const roomRes = await client.query(
+      "INSERT INTO rooms (id, name, phase, created_date) VALUES ($1, $2, $3, $4) RETURNING *",
+      [roomId, roomName, roomPhase, createdDate]
+    );
+    const roomRow = roomRes.rows[0];
+
+    // 2. Register Guests
+    const guestsResponse = [];
+    const guestsArray = Array.isArray(guests) ? guests : [];
+
+    // Dynamically resolve the protocol and host for the guestUrl
+    const protocol = req.headers["x-forwarded-proto"] || "http";
+    const host = req.headers.host || "localhost:8787";
+
+    for (const guestName of guestsArray) {
+      if (!guestName || typeof guestName !== "string") continue;
+
+      const guestId = getUUID();
+      const sessionToken = getUUID();
+
+      const guestRes = await client.query(
+        "INSERT INTO guest_users (id, name, room_id, session_token, is_active, is_online, created_date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+        [guestId, guestName, roomId, sessionToken, true, false, createdDate]
+      );
+      const row = guestRes.rows[0];
+
+      guestsResponse.push({
+        id: row.id,
+        name: row.name,
+        roomId: row.room_id,
+        sessionToken: row.session_token,
+        isActive: row.is_active,
+        isOnline: row.is_online,
+        lastSeen: row.last_seen,
+        created_date: row.created_date,
+        guestUrl: `${protocol}://${host}/guest?token=${sessionToken}`,
+      });
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      ok: true,
+      room: {
+        id: roomRow.id,
+        name: roomRow.name,
+        phase: roomRow.phase,
+        created_date: roomRow.created_date,
+      },
+      guests: guestsResponse,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
+  }
+});
+
 // POST /api/rooms (Requires Admin)
 app.post("/api/rooms", requireAdmin, async (req, res) => {
   const { id, name, phase } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: "name is required" });
+  }
+
   const roomId = id || getUUID();
   const roomPhase = phase || "WAITING";
   const createdDate = new Date();
