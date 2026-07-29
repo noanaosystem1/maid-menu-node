@@ -280,12 +280,23 @@ app.get("/api/guests", async (req, res) => {
 // POST /api/guests (Requires Admin)
 app.post("/api/guests", requireAdmin, async (req, res) => {
   const { id, name, roomId, sessionToken, isActive, isOnline } = req.body;
-  const guestId = id || getUUID();
-  const createdDate = new Date();
-  const activeVal = isActive !== false;
-  const onlineVal = isOnline === true;
+
+  if (!name || !roomId || !sessionToken) {
+    return res.status(400).json({ error: "name, roomId, sessionToken are required" });
+  }
 
   try {
+    // Verify room existence to prevent foreign key constraint failures (500)
+    const roomCheck = await pool.query("SELECT 1 FROM rooms WHERE id = $1", [roomId]);
+    if (roomCheck.rows.length === 0) {
+      return res.status(400).json({ error: "Room not found with provided roomId" });
+    }
+
+    const guestId = id || getUUID();
+    const createdDate = new Date();
+    const activeVal = isActive !== false;
+    const onlineVal = isOnline === true;
+
     const result = await pool.query(
       "INSERT INTO guest_users (id, name, room_id, session_token, is_active, is_online, created_date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
       [guestId, name, roomId, sessionToken, activeVal, onlineVal, createdDate]
