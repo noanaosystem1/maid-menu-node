@@ -32,6 +32,114 @@ const TERMINAL_LINES = [
   "> PROJECTING FEED TO MAIN SCREEN..."
 ];
 
+// Web Audio API Synthesizers for 100% reliable scary alarms and popup sounds
+function playGlitchBeep() {
+  const ctx = window.audioCtx;
+  if (!ctx || ctx.state === "suspended") return;
+
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(1400, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.12);
+
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// Global alarm state trackers to allow starting/stopping cleanly on mount/unmount
+let alarmIntervalId = null;
+let droneOsc = null;
+let droneGain = null;
+
+function startCyberAlarm() {
+  const ctx = window.audioCtx;
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+
+    // 1. Low Drone Vibration
+    droneOsc = ctx.createOscillator();
+    droneGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    droneOsc.type = "sawtooth";
+    droneOsc.frequency.setValueAtTime(60, ctx.currentTime); // Deep Low C
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(150, ctx.currentTime);
+
+    droneGain.gain.setValueAtTime(0.12, ctx.currentTime);
+
+    droneOsc.connect(filter);
+    filter.connect(droneGain);
+    droneGain.connect(ctx.destination);
+
+    droneOsc.start();
+
+    // 2. High Pulsing Cyber Alarm (FM modulated sound)
+    const playBeep = () => {
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(750, ctx.currentTime);
+      // Sweeping frequency
+      osc.frequency.linearRampToValueAtTime(950, ctx.currentTime + 0.25);
+      osc.frequency.linearRampToValueAtTime(750, ctx.currentTime + 0.5);
+
+      oscGain.gain.setValueAtTime(0, ctx.currentTime);
+      oscGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+      oscGain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.45);
+      oscGain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    };
+
+    // Pulsing sirens every 0.6 seconds
+    playBeep();
+    alarmIntervalId = setInterval(playBeep, 600);
+
+  } catch (err) {
+    console.error("[Audio] Failed to start cyber alarm:", err);
+  }
+}
+
+function stopCyberAlarm() {
+  if (alarmIntervalId) {
+    clearInterval(alarmIntervalId);
+    alarmIntervalId = null;
+  }
+  if (droneOsc) {
+    try {
+      droneOsc.stop();
+    } catch {}
+    droneOsc = null;
+  }
+  if (droneGain) {
+    droneGain.disconnect();
+    droneGain = null;
+  }
+}
+
 function GlitchChar({ char }) {
   const [display, setDisplay] = useState(char);
   useEffect(() => {
@@ -188,6 +296,14 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
   const [showMarquee, setShowMarquee] = useState(false);
   const fakeIp = useMemo(() => `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`, []);
 
+  // Play continuous alarm on mount, and stop on unmount!
+  useEffect(() => {
+    startCyberAlarm();
+    return () => {
+      stopCyberAlarm();
+    };
+  }, []);
+
   useEffect(() => {
     const showTimer = setTimeout(() => setShown(true), 1200);
     return () => clearTimeout(showTimer);
@@ -239,6 +355,7 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
             },
           },
         ]);
+        playGlitchBeep(); // Play error beep on popup creation!
         i++;
       }
     }, 1500);

@@ -16,6 +16,33 @@ export default function Guest() {
 
   const socketRef = useRef(null);
 
+  // Initialize and warm up the AudioContext on the first user interaction (Autoplay compliance)
+  useEffect(() => {
+    const initAudio = () => {
+      try {
+        if (!window.audioCtx) {
+          window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          console.log("[Audio] AudioContext initialized successfully via user gesture!");
+        }
+        if (window.audioCtx && window.audioCtx.state === "suspended") {
+          window.audioCtx.resume().then(() => {
+            console.log("[Audio] AudioContext resumed!");
+          });
+        }
+      } catch (err) {
+        console.error("[Audio] Failed to initialize AudioContext:", err);
+      }
+    };
+
+    window.addEventListener("click", initAudio);
+    window.addEventListener("touchstart", initAudio);
+
+    return () => {
+      window.removeEventListener("click", initAudio);
+      window.removeEventListener("touchstart", initAudio);
+    };
+  }, []);
+
   // Live Digital Clock (Date & Time) at the top of guest screens
   useEffect(() => {
     const updateTime = () => {
@@ -227,13 +254,15 @@ export default function Guest() {
   return (
     <div className="min-h-screen relative pt-10">
       {/* Top Live Clock Header */}
-      <div className="fixed top-0 left-0 right-0 bg-black/60 backdrop-blur-md border-b border-pink-500/20 py-2 px-4 flex items-center justify-between z-50 text-[10px] sm:text-xs text-pink-300 font-mono tracking-wider">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping" />
-          <span>CONNECTING LIVE SYSTEM</span>
+      {phase !== "BLACKOUT" && (
+        <div className="fixed top-0 left-0 right-0 bg-black/60 backdrop-blur-md border-b border-pink-500/20 py-2 px-4 flex items-center justify-between z-50 text-[10px] sm:text-xs text-pink-300 font-mono tracking-wider">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping" />
+            <span>CONNECTING LIVE SYSTEM</span>
+          </div>
+          <div className="font-semibold">{timeStr}</div>
         </div>
-        <div className="font-semibold">{timeStr}</div>
-      </div>
+      )}
 
       {phase === "HACKING" ? (
         <PhaseHacking
