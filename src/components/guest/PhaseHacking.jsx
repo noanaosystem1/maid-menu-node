@@ -24,21 +24,20 @@ const TERMINAL_LINES = [
   "> keystroke logger: RUNNING",
   "> neural pattern match: CONFIRMED",
   "> subject emotional state: FEAR DETECTED",
-  "> uploading to ████████... 67%",
+  "> uploading to SYSTEM BACKEND... 67%",
   "> erasing access logs... OK",
   "> installing persistence module... OK",
+  "> OVERRIDING USER SYSTEM CONTROLS... COMPLETE",
+  "> WARNING: INTRUSION IMMINENT",
+  "> PROJECTING FEED TO MAIN SCREEN..."
 ];
 
 function GlitchChar({ char }) {
   const [display, setDisplay] = useState(char);
   useEffect(() => {
     if (Math.random() > 0.65) return;
-    let count = 0;
-    const max = Math.floor(Math.random() * 6) + 2;
-    const id = setInterval(() => {
-      count++;
-      if (count >= max) { setDisplay(char); clearInterval(id); }
-      else setDisplay(GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)]);
+    let id = setInterval(() => {
+      setDisplay(GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)]);
     }, 60);
     return () => clearInterval(id);
   }, [char]);
@@ -120,18 +119,21 @@ function TerminalLog() {
     let i = 0;
     const id = setInterval(() => {
       if (i < TERMINAL_LINES.length) {
-        setLines((prev) => [...prev.slice(-8), TERMINAL_LINES[i]]);
+        setLines((prev) => [...prev.slice(-10), TERMINAL_LINES[i]]);
         i++;
+      } else {
+        // loop log to keep scary terminal background active
+        setLines((prev) => [...prev.slice(-10), TERMINAL_LINES[Math.floor(Math.random() * TERMINAL_LINES.length)]]);
       }
-    }, 400);
+    }, 300);
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="fixed bottom-4 left-4 right-4 max-w-md z-[35] font-mono text-[9px] text-green-500/70 bg-black/80 border border-green-900/50 rounded p-2 max-h-24 overflow-hidden">
+    <div className="fixed bottom-4 left-4 right-4 max-w-md z-[35] font-mono text-[9px] text-red-500/70 bg-black/80 border border-red-900/50 rounded p-2 max-h-24 overflow-hidden">
       {lines.map((line, i) => (
         <div key={i} className="truncate">{line}</div>
       ))}
-      <span className="hack-cursor inline-block w-2 h-3 bg-green-500 ml-0.5" />
+      <span className="hack-cursor inline-block w-2 h-3 bg-red-500 ml-0.5" />
     </div>
   );
 }
@@ -159,7 +161,7 @@ function WebcamOverlay() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="fixed top-4 right-4 z-[45] w-24 h-20 border-2 border-red-600 bg-black/90 rounded overflow-hidden">
+    <div className="fixed top-12 right-4 z-[45] w-24 h-20 border-2 border-red-600 bg-black/90 rounded overflow-hidden">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-12 h-12 rounded-full border-2 border-red-500/50 flex items-center justify-center">
           <span className="text-2xl opacity-60">👁</span>
@@ -178,17 +180,25 @@ function WebcamOverlay() {
 
 export default function PhaseHacking({ guestName, onCountdownEnd }) {
   const [countdown, setCountdown] = useState(HACKING_COUNTDOWN);
-  const [phase2, setPhase2] = useState(false);
   const [shown, setShown] = useState(false);
   const [shake, setShake] = useState(false);
   const [flash, setFlash] = useState(false);
   const [popups, setPopups] = useState([]);
   const [extractProgress, setExtractProgress] = useState(0);
+  const [showMarquee, setShowMarquee] = useState(false);
   const fakeIp = useMemo(() => `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`, []);
 
   useEffect(() => {
     const showTimer = setTimeout(() => setShown(true), 1200);
     return () => clearTimeout(showTimer);
+  }, []);
+
+  // Show scrolling warning notice after 3 seconds
+  useEffect(() => {
+    const marqueeTimer = setTimeout(() => {
+      setShowMarquee(true);
+    }, 3000);
+    return () => clearTimeout(marqueeTimer);
   }, []);
 
   useEffect(() => {
@@ -207,8 +217,7 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
   }, [shown, onCountdownEnd]);
 
   useEffect(() => {
-    if (countdown <= 8) setPhase2(true);
-    if (countdown <= 5) {
+    if (countdown <= 10) {
       setShake(true);
       setFlash(true);
     }
@@ -225,14 +234,14 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
             id: Date.now(),
             text: FAKE_ALERTS[i],
             style: {
-              top: `${10 + Math.random() * 40}%`,
+              top: `${15 + Math.random() * 40}%`,
               left: `${5 + Math.random() * 50}%`,
             },
           },
         ]);
         i++;
       }
-    }, 1800);
+    }, 1500);
     return () => clearInterval(id);
   }, [shown]);
 
@@ -240,12 +249,12 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
     if (!shown) return;
     const id = setInterval(() => {
       setExtractProgress((p) => Math.min(100, p + Math.random() * 8));
-    }, 500);
+    }, 400);
     return () => clearInterval(id);
   }, [shown]);
 
   useEffect(() => {
-    const id = setInterval(() => setFlash((f) => !f), countdown <= 5 ? 200 : 2000);
+    const id = setInterval(() => setFlash((f) => !f), countdown <= 10 ? 250 : 2000);
     return () => clearInterval(id);
   }, [countdown]);
 
@@ -256,7 +265,7 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
 
       {/* Red flash overlay */}
       <div
-        className={`fixed inset-0 pointer-events-none z-[15] transition-opacity duration-100 ${flash && countdown <= 5 ? "opacity-30" : "opacity-0"}`}
+        className={`fixed inset-0 pointer-events-none z-[15] transition-opacity duration-100 ${flash ? "opacity-30" : "opacity-0"}`}
         style={{ background: "radial-gradient(circle, #FF0000 0%, transparent 70%)" }}
       />
 
@@ -279,10 +288,20 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
         <FakePopup key={p.id} text={p.text} style={p.style} />
       ))}
 
-      <div className="relative z-30 w-full max-w-lg mx-auto px-4 text-center pt-16 pb-32">
+      {/* Massive Projector Focus Scrolling Banner */}
+      {showMarquee && (
+        <div className="fixed top-1/3 left-0 right-0 bg-red-700/95 text-yellow-300 font-extrabold py-5 border-y-4 border-yellow-400 z-[99] rotate-[-4deg] shadow-2xl pointer-events-none select-none">
+          {/* eslint-disable-next-line react/no-unknown-property */}
+          <marquee scrollamount="15" className="text-4xl sm:text-6xl tracking-widest font-black font-sans">
+            前のプロジェクターに注目！ 🛑 前のプロジェクターに注目！ 🛑 前のプロジェクターに注目！ 🛑 前のプロジェクターに注目！ 🛑 前のプロジェクターに注目！
+          </marquee>
+        </div>
+      )}
+
+      <div className="relative z-30 w-full max-w-lg mx-auto px-4 text-center pt-24 pb-32">
         {/* Skull + WARNING */}
         <div style={{ animation: "glitch-skew 1.5s infinite" }}>
-          <div className="text-4xl mb-2 opacity-80">💀</div>
+          <div className="text-4xl mb-2 opacity-80 animate-bounce">💀</div>
           <div
             className="text-6xl font-bold mb-1 glitch-text rgb-shift hack-text-bleed"
             data-text="WARNING"
@@ -311,7 +330,7 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
                 style={{ width: `${extractProgress}%` }}
               />
             </div>
-            <p className="text-[9px] text-red-600 mt-1 font-mono">{extractProgress.toFixed(1)}% — DO NOT POWER OFF</p>
+            <p className="text-[9px] text-red-600 mt-1 font-mono">{extractProgress.toFixed(1)}% — INTRUSION ACTIVE</p>
           </div>
         )}
 
@@ -362,30 +381,6 @@ export default function PhaseHacking({ guestName, onCountdownEnd }) {
                 <p>▸ 感情分析: 恐怖 ↑↑↑</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {shown && (
-          <div className="mt-4">
-            <p className="text-[10px] mb-2 tracking-widest" style={{ color: "#666" }}>
-              ▼ システム終了まで ▼
-            </p>
-            <div
-              className="text-9xl font-bold tabular-nums hack-countdown"
-              style={{
-                color: countdown <= 5 ? "#FF0000" : "#FF4444",
-                textShadow: `0 0 ${40 - countdown * 2}px #FF0000, 0 0 80px #FF000066`,
-                animation: countdown <= 5 ? "countdown-pulse 0.5s infinite, rgb-shift 0.3s infinite" : "rgb-shift 1s infinite",
-              }}
-            >
-              {countdown.toString().padStart(2, "0")}
-            </div>
-            <p className="text-xs mt-3 hack-text-bleed" style={{ color: "#AA0000" }}>
-              あなたのデバイスは監視下に置かれています
-            </p>
-            <p className="text-[10px] mt-1 opacity-50" style={{ color: "#660000" }}>
-              この画面を閉じても意味がありません
-            </p>
           </div>
         )}
 

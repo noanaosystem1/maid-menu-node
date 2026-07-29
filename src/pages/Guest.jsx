@@ -12,8 +12,23 @@ export default function Guest() {
   const [guestUser, setGuestUser] = useState(null);
   const [room, setRoom] = useState(null);
   const [token, setToken] = useState(null);
+  const [timeStr, setTimeStr] = useState("");
 
   const socketRef = useRef(null);
+
+  // Live Digital Clock (Date & Time) at the top of guest screens
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const datePart = now.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const dayPart = now.toLocaleDateString('ja-JP', { weekday: 'short' });
+      const timePart = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      setTimeStr(`${datePart} (${dayPart}) ${timePart}`);
+    };
+    updateTime();
+    const id = setInterval(updateTime, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const checkBlackoutLock = useCallback((tok) => {
     if (!tok) return false;
@@ -95,12 +110,11 @@ export default function Guest() {
     if (!guestUser?.roomId || !room) return;
 
     const currentPhase = room.phase || "WAITING";
-    const isInteractive = currentPhase === "MENU_OPEN" || currentPhase === "HACKING";
+    const isInteractive = currentPhase !== "BLACKOUT"; // Keep WS alive in all phases except BLACKOUT
 
-    // PRINCIPLE: If in static phase (WAITING or BLACKOUT), do NOT establish or keep any WebSocket/polling connections.
     if (!isInteractive) {
       if (socketRef.current) {
-        console.log("[WebSocket] Phase is static. Closing active connection to minimize Worker load.");
+        console.log("[WebSocket] Phase is static blackout. Closing active connection.");
         socketRef.current.close();
         socketRef.current = null;
       }
@@ -109,7 +123,7 @@ export default function Guest() {
 
     // Connect to WebSocket Server if interactive and not already connected
     if (!socketRef.current) {
-      console.log(`[WebSocket] Entering interactive phase: ${currentPhase}. Connecting to WebSocket Server.`);
+      console.log(`[WebSocket] Connecting to WebSocket Server (Current Phase: ${currentPhase}).`);
 
       let wsUrl = "";
       const wsUrlEnv = import.meta.env.VITE_WS_URL;
@@ -185,7 +199,7 @@ export default function Guest() {
     );
   }
 
-  // Beautiful Reload Prompt Screen if Room/Guest are not found or communication fails (Saves Worker Execution load)
+  // Beautiful Reload Prompt Screen if Room/Guest are not found or communication fails
   if (error) {
     return (
       <div className="min-h-screen cute-gradient flex items-center justify-center p-6 text-center">
@@ -210,24 +224,30 @@ export default function Guest() {
     return <PhaseBlackout token={token} />;
   }
 
-  if (phase === "HACKING") {
-    return (
-      <PhaseHacking
-        guestName={guestUser?.name}
-        onCountdownEnd={handleCountdownEnd}
-      />
-    );
-  }
-
-  if (phase === "MENU_OPEN") {
-    return <PhaseMenu guestName={guestUser?.name} />;
-  }
-
-  // WAITING phase UI with friendly manual reload button (Minimizes server/Worker calls completely)
   return (
-    <PhaseWaiting
-      guestName={guestUser?.name}
-      onReload={() => window.location.reload()}
-    />
+    <div className="min-h-screen relative pt-10">
+      {/* Top Live Clock Header */}
+      <div className="fixed top-0 left-0 right-0 bg-black/60 backdrop-blur-md border-b border-pink-500/20 py-2 px-4 flex items-center justify-between z-50 text-[10px] sm:text-xs text-pink-300 font-mono tracking-wider">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping" />
+          <span>CONNECTING LIVE SYSTEM</span>
+        </div>
+        <div className="font-semibold">{timeStr}</div>
+      </div>
+
+      {phase === "HACKING" ? (
+        <PhaseHacking
+          guestName={guestUser?.name}
+          onCountdownEnd={handleCountdownEnd}
+        />
+      ) : (phase === "MENU_OPEN" || phase === "MENU_OPEN_2") ? (
+        <PhaseMenu guestName={guestUser?.name} />
+      ) : (
+        <PhaseWaiting
+          guestName={guestUser?.name}
+          onReload={() => window.location.reload()}
+        />
+      )}
+    </div>
   );
 }
