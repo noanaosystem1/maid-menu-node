@@ -70,13 +70,12 @@ export default function Admin() {
   }
 
   if (selectedRoomId) {
-    return <AdminRoomDetail roomId={selectedRoomId} onBack={() => setSelectedRoomId(null)} />;
+    return <AdminRoomDetail roomId={selectedRoomId} onBack={() => setSelectedRoomId(null)} onLogout={handleLogout} />;
   }
 
   const getMembersForRoom = (roomId) => members.filter((m) => m.roomId === roomId);
   const getOnlineCountForRoom = (roomId) => {
-    const now = Date.now();
-    return members.filter((m) => m.roomId === roomId && m.isOnline && m.lastSeen && (now - new Date(m.lastSeen).getTime()) < 10000).length;
+    return members.filter((m) => m.roomId === roomId && m.isOnline).length;
   };
 
   return (
@@ -140,7 +139,7 @@ export default function Admin() {
               {[
                 { label: "総Room数", value: rooms.length, color: "text-white" },
                 { label: "総ゲスト数", value: members.length, color: "text-pink-400" },
-                { label: "オンライン", value: members.filter((m) => m.isOnline && m.lastSeen && (Date.now() - new Date(m.lastSeen).getTime()) < 10000).length, color: "text-green-400" },
+                { label: "オンライン", value: members.filter((m) => m.isOnline).length, color: "text-green-400" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-gray-900 rounded-xl border border-gray-800 p-4 text-center">
                   <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>

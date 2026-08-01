@@ -6,6 +6,187 @@ import PhaseMenu from "@/components/guest/PhaseMenu";
 import PhaseHacking from "@/components/guest/PhaseHacking";
 import PhaseBlackout from "@/components/guest/PhaseBlackout";
 
+// ==========================================
+// SYNTHETIC PHASE AUDIO ENGINE (Web Audio API)
+// ==========================================
+let normalBgmInterval = null;
+let bgmOscs = [];
+
+function startNormalBGM() {
+  const ctx = window.audioCtx;
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+
+    // Play a gentle, soothing ambient pentatonic arpeggio (C - D - E - G - A)
+    const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+    let noteIndex = 0;
+
+    const playNote = () => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      const freq = notes[noteIndex % notes.length];
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.03, ctx.currentTime + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 1.3);
+
+      bgmOscs.push(osc);
+      // Clean up reference after note ends
+      setTimeout(() => {
+        bgmOscs = bgmOscs.filter(o => o !== osc);
+      }, 1500);
+
+      noteIndex = (noteIndex + Math.floor(Math.random() * 3) + 1) % notes.length;
+    };
+
+    playNote();
+    normalBgmInterval = setInterval(playNote, 400); // Gentle 150 BPM pulse
+    console.log("[Audio] Normal BGM started.");
+  } catch (err) {
+    console.error("[Audio] Failed to start normal BGM:", err);
+  }
+}
+
+function stopNormalBGM() {
+  if (normalBgmInterval) {
+    clearInterval(normalBgmInterval);
+    normalBgmInterval = null;
+  }
+  bgmOscs.forEach(osc => {
+    try { osc.stop(); } catch {}
+  });
+  bgmOscs = [];
+  console.log("[Audio] Normal BGM stopped.");
+}
+
+// Global alarm state trackers for Hacking Phase
+let alarmIntervalId = null;
+let droneOsc = null;
+let droneGain = null;
+
+function startCyberAlarm() {
+  const ctx = window.audioCtx;
+  if (!ctx) return;
+
+  try {
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+
+    // 1. Low Drone Vibration
+    droneOsc = ctx.createOscillator();
+    droneGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    droneOsc.type = "sawtooth";
+    droneOsc.frequency.setValueAtTime(60, ctx.currentTime); // Deep Low C
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(150, ctx.currentTime);
+
+    droneGain.gain.setValueAtTime(0.10, ctx.currentTime);
+
+    droneOsc.connect(filter);
+    filter.connect(droneGain);
+    droneGain.connect(ctx.destination);
+
+    droneOsc.start();
+
+    // 2. High Pulsing Cyber Alarm
+    const playBeep = () => {
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(750, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(950, ctx.currentTime + 0.25);
+      osc.frequency.linearRampToValueAtTime(750, ctx.currentTime + 0.5);
+
+      oscGain.gain.setValueAtTime(0, ctx.currentTime);
+      oscGain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.05);
+      oscGain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.45);
+      oscGain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    };
+
+    playBeep();
+    alarmIntervalId = setInterval(playBeep, 600);
+    console.log("[Audio] Cyber Alarm started.");
+  } catch (err) {
+    console.error("[Audio] Failed to start cyber alarm:", err);
+  }
+}
+
+function stopCyberAlarm() {
+  if (alarmIntervalId) {
+    clearInterval(alarmIntervalId);
+    alarmIntervalId = null;
+  }
+  if (droneOsc) {
+    try {
+      droneOsc.stop();
+    } catch {}
+    droneOsc = null;
+  }
+  if (droneGain) {
+    droneGain.disconnect();
+    droneGain = null;
+  }
+  console.log("[Audio] Cyber Alarm stopped.");
+}
+
+// Success Fanfare
+export function playSuccessFanfare() {
+  const ctx = window.audioCtx;
+  if (!ctx || ctx.state === "suspended") return;
+
+  try {
+    const now = ctx.currentTime;
+    const freqs = [261.63, 329.63, 392.00, 523.25];
+    freqs.forEach((f, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(f, now + index * 0.12);
+
+      gain.gain.setValueAtTime(0, now + index * 0.12);
+      gain.gain.linearRampToValueAtTime(0.08, now + index * 0.12 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.12 + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now + index * 0.12);
+      osc.stop(now + index * 0.12 + 0.6);
+    });
+    console.log("[Audio] Success Fanfare played.");
+  } catch (err) {
+    console.error("[Audio] Fanfare failed:", err);
+  }
+}
+
+// Attach to window so PhaseMenu component can trigger it on ordering
+window.playSuccessFanfare = playSuccessFanfare;
+
 export default function Guest() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -176,6 +357,13 @@ export default function Guest() {
           const data = JSON.parse(event.data);
           if (data.type === "PHASE_UPDATE") {
             console.log(`[WebSocket] Real-time Phase Broadcast: ${data.phase}`);
+
+            // Online Synchronization / Reset Blackout Lock if we receive a non-blackout state
+            if (data.phase !== "BLACKOUT" && token) {
+              console.log("[WebSocket] Active phase sync reset. Clearing local blackout lock.");
+              localStorage.removeItem(STORAGE_KEYS.BLACKOUT_LOCK(token));
+            }
+
             setRoom(prev => {
               if (prev && prev.phase !== data.phase) {
                 return { ...prev, phase: data.phase };
@@ -206,7 +394,29 @@ export default function Guest() {
         socketRef.current = null;
       }
     };
-  }, [guestUser, room?.phase]);
+  }, [guestUser, room?.phase, token]);
+
+  // Strict Phase BGM & Cyber Alarm management
+  useEffect(() => {
+    const currentPhase = room?.phase || "WAITING";
+
+    // Stop all current sounds first
+    stopNormalBGM();
+    stopCyberAlarm();
+
+    // Start sound based on current phase (Autoplay compliant)
+    if (currentPhase === "MENU_OPEN" || currentPhase === "MENU_OPEN_2") {
+      startNormalBGM();
+    } else if (currentPhase === "HACKING") {
+      startCyberAlarm();
+    }
+    // WAITING / BLACKOUT remains completely quiet
+
+    return () => {
+      stopNormalBGM();
+      stopCyberAlarm();
+    };
+  }, [room?.phase]);
 
   const handleCountdownEnd = useCallback(() => {
     if (token) localStorage.setItem(STORAGE_KEYS.BLACKOUT_LOCK(token), "true");

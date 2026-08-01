@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, LogOut } from "lucide-react";
 import { api } from "@/api/client";
 import { PHASES, PHASE_LABELS, PHASE_COLORS } from "@/lib/constants";
 import PhaseControls from "@/components/admin/PhaseControls";
@@ -7,7 +7,7 @@ import MemberList from "@/components/admin/MemberList";
 import AddMemberModal from "@/components/admin/AddMemberModal";
 import UrlExportPanel from "@/components/admin/UrlExportPanel";
 
-export default function AdminRoomDetail({ roomId, onBack }) {
+export default function AdminRoomDetail({ roomId, onBack, onLogout }) {
   const [room, setRoom] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +100,13 @@ export default function AdminRoomDetail({ roomId, onBack }) {
           </div>
           <button onClick={loadData} className="p-2 text-gray-500 hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-900">
             <RefreshCw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onLogout}
+            className="p-2 text-gray-500 hover:text-red-400 transition-colors rounded-lg hover:bg-gray-900"
+            title="ログアウト"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
