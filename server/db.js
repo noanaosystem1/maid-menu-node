@@ -60,11 +60,8 @@ export async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_menu_items_order ON menu_items(order_index);
     `);
 
-    // Strict State Reset on reboot: Reset all online flags to FALSE
-    await client.query("UPDATE guest_users SET is_online = FALSE");
-
     await client.query("COMMIT");
-    console.log("[Database] PostgreSQL schemas initialized and dirty states reset.");
+    console.log("[Database] PostgreSQL schemas initialized successfully.");
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("[Database] Failed to initialize PostgreSQL schema:", error);

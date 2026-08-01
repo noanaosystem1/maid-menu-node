@@ -2,13 +2,12 @@
 export const ADMIN_PASSWORD = "maid2024";
 
 // ===== Phase定義 =====
-export const PHASES = ["WAITING", "MENU_OPEN", "HACKING", "MENU_OPEN_2", "BLACKOUT"];
+export const PHASES = ["WAITING", "MENU_OPEN", "HACKING", "BLACKOUT"];
 
 export const PHASE_LABELS = {
   WAITING: "待機中",
   MENU_OPEN: "メニュー表示",
   HACKING: "ハッキング",
-  MENU_OPEN_2: "メニュー表示 (再開)",
   BLACKOUT: "暗転",
 };
 
@@ -16,7 +15,6 @@ export const PHASE_COLORS = {
   WAITING: "bg-blue-500",
   MENU_OPEN: "bg-pink-400",
   HACKING: "bg-red-600",
-  MENU_OPEN_2: "bg-purple-500",
   BLACKOUT: "bg-gray-900 border border-gray-600",
 };
 
@@ -24,7 +22,6 @@ export const PHASE_TEXT_COLORS = {
   WAITING: "text-blue-400",
   MENU_OPEN: "text-pink-400",
   HACKING: "text-red-500",
-  MENU_OPEN_2: "text-purple-400",
   BLACKOUT: "text-gray-500",
 };
 
