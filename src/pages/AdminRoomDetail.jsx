@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, LogOut } from "lucide-react";
 import { api } from "@/api/client";
 import { PHASES, PHASE_LABELS, PHASE_COLORS } from "@/lib/constants";
 import PhaseControls from "@/components/admin/PhaseControls";
@@ -7,7 +7,7 @@ import MemberList from "@/components/admin/MemberList";
 import AddMemberModal from "@/components/admin/AddMemberModal";
 import UrlExportPanel from "@/components/admin/UrlExportPanel";
 
-export default function AdminRoomDetail({ roomId, onBack }) {
+export default function AdminRoomDetail({ roomId, onBack, onLogout }) {
   const [room, setRoom] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,17 +41,43 @@ export default function AdminRoomDetail({ roomId, onBack }) {
     if (currentIndex >= PHASES.length - 1) return;
     const nextPhase = PHASES[currentIndex + 1];
     setAdvancing(true);
-    const updated = await api.rooms.update(room.id, { phase: nextPhase });
-    setRoom(updated);
-    setAdvancing(false);
+    try {
+      const updated = await api.rooms.update(room.id, { phase: nextPhase });
+      setRoom(updated);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
+  const handleGoBack = async () => {
+    if (!room) return;
+    const currentIndex = PHASES.indexOf(room.phase);
+    if (currentIndex <= 0) return;
+    const prevPhase = PHASES[currentIndex - 1];
+    setAdvancing(true);
+    try {
+      const updated = await api.rooms.update(room.id, { phase: prevPhase });
+      setRoom(updated);
+    } catch (err) {
+      console.error("Failed to go back phase:", err);
+    } finally {
+      setAdvancing(false);
+    }
   };
 
   const handleReset = async () => {
     if (!confirm("このRoomをWAITINGにリセットしますか？")) return;
     setAdvancing(true);
-    const updated = await api.rooms.update(room.id, { phase: "WAITING" });
-    setRoom(updated);
-    setAdvancing(false);
+    try {
+      const updated = await api.rooms.update(room.id, { phase: "WAITING" });
+      setRoom(updated);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAdvancing(false);
+    }
   };
 
   const handleDeleteMember = async (memberId) => {
@@ -101,6 +127,13 @@ export default function AdminRoomDetail({ roomId, onBack }) {
           <button onClick={loadData} className="p-2 text-gray-500 hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-900">
             <RefreshCw className="w-4 h-4" />
           </button>
+          <button
+            onClick={onLogout}
+            className="p-2 text-gray-500 hover:text-red-400 transition-colors rounded-lg hover:bg-gray-900"
+            title="ログアウト"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -110,6 +143,7 @@ export default function AdminRoomDetail({ roomId, onBack }) {
         <PhaseControls
           room={room}
           onAdvance={handleAdvance}
+          onGoBack={handleGoBack}
           onReset={handleReset}
           loading={advancing}
         />

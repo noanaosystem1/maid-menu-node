@@ -1,8 +1,9 @@
 import { STORAGE_KEYS } from "@/lib/constants";
 
+// VITE_API_URL represents the Node.js backend URL (e.g. http://localhost:8080/api)
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
-async function request(path, { method = "GET", body } = {}) {
+async function request(path, { method = "GET", body, useSameOrigin = false } = {}) {
   const adminPassword = sessionStorage.getItem(STORAGE_KEYS.ADMIN_AUTH_PASSWORD);
 
   const headers = {};
@@ -16,7 +17,11 @@ async function request(path, { method = "GET", body } = {}) {
     headers["Authorization"] = adminPassword;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  // If useSameOrigin is true, make the request to the current host (Cloudflare Worker auth proxy)
+  const baseUrl = useSameOrigin ? "/api" : API_BASE;
+  const url = useSameOrigin ? path : `${baseUrl}${path}`;
+
+  const res = await fetch(url, {
     method,
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -31,6 +36,9 @@ async function request(path, { method = "GET", body } = {}) {
 }
 
 export const api = {
+  admin: {
+    login: (password) => request("/admin/login", { method: "POST", body: { password }, useSameOrigin: false }),
+  },
   rooms: {
     list: () => request("/rooms"),
     get: (id) => request(`/rooms/${id}`),

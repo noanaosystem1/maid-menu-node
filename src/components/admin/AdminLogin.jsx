@@ -15,18 +15,19 @@ export default function AdminLogin({ onAuthenticated }) {
     setError("");
 
     try {
-      // Temporarily store the entered password in sessionStorage so the api client uses it
-      sessionStorage.setItem(STORAGE_KEYS.ADMIN_AUTH_PASSWORD, password);
+      // Authenticate via Cloudflare Worker admin login endpoint
+      const res = await api.admin.login(password);
 
-      // Attempt to retrieve the full guest list (which requires admin authorization)
-      await api.guests.list();
-
-      // If it succeeded, finalize authentication
-      sessionStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, "1");
-      onAuthenticated();
+      if (res && res.success) {
+        // Finalize authentication and store password in sessionStorage for future Node.js requests
+        sessionStorage.setItem(STORAGE_KEYS.ADMIN_AUTH_PASSWORD, password);
+        sessionStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, "1");
+        onAuthenticated();
+      } else {
+        throw new Error("Invalid password");
+      }
     } catch (err) {
       console.error("Login verification failed:", err);
-      // Clean up on failure
       sessionStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH_PASSWORD);
       setError("パスワードが正しくありません");
     } finally {

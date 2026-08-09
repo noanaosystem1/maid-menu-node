@@ -1,10 +1,10 @@
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, RotateCcw, ArrowLeft } from "lucide-react";
 import { PHASES, PHASE_LABELS, PHASE_COLORS } from "@/lib/constants";
 
-export default function PhaseControls({ room, onAdvance, onReset, loading }) {
+export default function PhaseControls({ room, onAdvance, onGoBack, onReset, loading }) {
   const currentIndex = PHASES.indexOf(room.phase);
   const nextPhase = currentIndex < PHASES.length - 1 ? PHASES[currentIndex + 1] : null;
-  const isLast = currentIndex === PHASES.length - 1;
+  const prevPhase = currentIndex > 0 ? PHASES[currentIndex - 1] : null;
 
   return (
     <div className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
@@ -37,7 +37,7 @@ export default function PhaseControls({ room, onAdvance, onReset, loading }) {
         ))}
       </div>
 
-      {/* Advance button */}
+      {/* Advance / Regress controls */}
       <div className="space-y-3">
         {nextPhase ? (
           <button
@@ -46,9 +46,11 @@ export default function PhaseControls({ room, onAdvance, onReset, loading }) {
             className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-white transition-all disabled:opacity-50 ${
               nextPhase === "HACKING"
                 ? "bg-red-600 hover:bg-red-500"
+                : nextPhase === "EMERGENCY"
+                ? "bg-amber-600 hover:bg-amber-500 text-black font-extrabold animate-pulse"
                 : nextPhase === "BLACKOUT"
                 ? "bg-gray-700 hover:bg-gray-600"
-                : nextPhase === "MENU_OPEN"
+                : nextPhase === "MENU_OPEN" || nextPhase === "MENU_OPEN_2" || nextPhase === "NIGHT_MODE"
                 ? "bg-pink-600 hover:bg-pink-500"
                 : "bg-blue-600 hover:bg-blue-500"
             }`}
@@ -60,6 +62,18 @@ export default function PhaseControls({ room, onAdvance, onReset, loading }) {
           <div className="w-full py-4 rounded-xl bg-gray-800 text-gray-500 text-center text-sm">
             最終フェーズに達しています
           </div>
+        )}
+
+        {/* Go back 1 phase button */}
+        {prevPhase && (
+          <button
+            onClick={onGoBack}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 border border-gray-700/50 transition-all disabled:opacity-50 text-sm font-semibold"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>1つ前のフェーズに戻す ({PHASE_LABELS[prevPhase]}へ)</span>
+          </button>
         )}
 
         {/* Reset button */}
