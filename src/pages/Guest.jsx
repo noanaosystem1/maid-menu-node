@@ -345,25 +345,18 @@ export default function Guest() {
       });
   }, [checkBlackoutLock, loadRoomPhase]);
 
-  // WebSocket connection & lifecycle management
+  // WebSocket connection & lifecycle management (STABLE SINGLE CONNECTION - NEVER CHURNS ON PHASE CHANGES)
   useEffect(() => {
-    if (!guestUser?.roomId || !room) return;
+    if (!guestUser?.roomId) return;
 
-    const currentPhase = room.phase || "WAITING";
-    const isInteractive = currentPhase !== "BLACKOUT"; // Keep WS alive in all phases except BLACKOUT
+    let isComponentMounted = true;
+    let reconnectTimeoutId = null;
+    let pingIntervalId = null;
 
-    if (!isInteractive) {
-      if (socketRef.current) {
-        console.log("[WebSocket] Phase is static blackout. Closing active connection.");
-        socketRef.current.close();
-        socketRef.current = null;
-      }
-      return;
-    }
+    const connectWS = () => {
+      if (!isComponentMounted) return;
 
-    // Connect to WebSocket Server if interactive and not already connected
-    if (!socketRef.current) {
-      console.log(`[WebSocket] Connecting to WebSocket Server (Current Phase: ${currentPhase}).`);
+      console.log(`[WebSocket] Establishing highly persistent real-time socket...`);
 
       let wsUrl = "";
       const wsUrlEnv = import.meta.env.VITE_WS_URL;
@@ -380,9 +373,19 @@ export default function Guest() {
         wsUrl = `${protocol}//${window.location.host}/api/ws?roomId=${guestUser.roomId}&guestId=${guestUser.id}`;
       }
 
-      console.log(`[WebSocket] Resolved WebSocket URL: ${wsUrl}`);
+      console.log(`[WebSocket] Resolved URL: ${wsUrl}`);
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("[WebSocket] Persistent connection opened successfully!");
+        // Keep alive heartbeat every 15s to keep socket warm
+        pingIntervalId = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "PING" }));
+          }
+        }, 15000);
+      };
 
       ws.onmessage = (event) => {
         try {
@@ -408,25 +411,39 @@ export default function Guest() {
         }
       };
 
-      ws.onclose = () => {
-        console.log("[WebSocket] Connection closed.");
-        socketRef.current = null;
+      const handleCloseOrError = () => {
+        if (pingIntervalId) {
+          clearInterval(pingIntervalId);
+        }
+        if (socketRef.current === ws) {
+          socketRef.current = null;
+        }
+
+        // Auto-reconnect after 1.5 seconds if mounted
+        if (isComponentMounted) {
+          console.log("[WebSocket] Socket disconnected. Auto-reconnecting in 1.5 seconds...");
+          reconnectTimeoutId = setTimeout(() => {
+            connectWS();
+          }, 1500);
+        }
       };
 
-      ws.onerror = (e) => {
-        console.error("[WebSocket] Error occurred:", e);
-        socketRef.current = null;
-      };
-    }
+      ws.onclose = handleCloseOrError;
+      ws.onerror = handleCloseOrError;
+    };
+
+    connectWS();
 
     return () => {
-      // Cleanup on unmount
+      isComponentMounted = false;
+      if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
+      if (pingIntervalId) clearInterval(pingIntervalId);
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;
       }
     };
-  }, [guestUser, room?.phase, token]);
+  }, [guestUser?.id, guestUser?.roomId, token]); // Permanent single mount, no room.phase dependencies!
 
   // Strict Phase Audio Management (Normal BGM & Scary Ambient Wind)
   useEffect(() => {
