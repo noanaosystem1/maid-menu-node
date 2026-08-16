@@ -118,7 +118,19 @@ app.post("/api/rooms-with-guests", requireAdmin, async (req, res) => {
 
     // Dynamically resolve the protocol and host for the guestUrl
     const protocol = req.headers["x-forwarded-proto"] || "http";
-    const host = req.headers.host || "localhost:8787";
+    let rawHost = req.headers.host || "localhost:8787";
+    // Ensure IPv6 host addresses without brackets are properly formatted
+    if (rawHost.includes(":") && !rawHost.startsWith("[") && !rawHost.includes("]:")) {
+      const lastColon = rawHost.lastIndexOf(":");
+      if (rawHost.indexOf(":") !== lastColon) {
+        const hasPort = rawHost.split(":").length > 8 || !isNaN(Number(rawHost.substring(lastColon + 1)));
+        if (hasPort) {
+          rawHost = `[${rawHost.substring(0, lastColon)}]${rawHost.substring(lastColon)}`;
+        } else {
+          rawHost = `[${rawHost}]`;
+        }
+      }
+    }
 
     for (const guestName of guestsArray) {
       if (!guestName || typeof guestName !== "string") continue;
@@ -141,7 +153,7 @@ app.post("/api/rooms-with-guests", requireAdmin, async (req, res) => {
         isOnline: row.is_online,
         lastSeen: row.last_seen,
         created_date: row.created_date,
-        guestUrl: `${protocol}://${host}/guest?token=${sessionToken}`,
+        guestUrl: `${protocol}://${rawHost}/guest?token=${sessionToken}`,
       });
     }
 
@@ -579,7 +591,30 @@ export function broadcastToRoom(roomId, message) {
 
 // Handle HTTP upgrade requests for WebSocket server
 server.on("upgrade", (request, socket, head) => {
-  const url = new URL(request.url, `http://${request.headers.host}`);
+  let host = request.headers.host || "localhost";
+  // If host is bare IPv6 address without brackets, wrap it with brackets for URL parsing
+  if (host.includes(":") && !host.startsWith("[") && !host.includes("]:")) {
+    // Check if host contains port
+    const lastColon = host.lastIndexOf(":");
+    if (host.indexOf(":") !== lastColon) {
+      // Multiple colons -> IPv6 address. Formatted as [ipv6] or [ipv6]:port
+      const hasPort = host.split(":").length > 8 || (host.includes(":") && !isNaN(Number(host.substring(lastColon + 1))));
+      if (hasPort) {
+        const ipPart = host.substring(0, lastColon);
+        const portPart = host.substring(lastColon);
+        host = `[${ipPart}]${portPart}`;
+      } else {
+        host = `[${host}]`;
+      }
+    }
+  }
+
+  let url;
+  try {
+    url = new URL(request.url, `http://${host}`);
+  } catch (err) {
+    url = new URL(request.url, "http://localhost");
+  }
   const pathname = url.pathname;
 
   if (pathname === "/api/ws") {
