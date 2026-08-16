@@ -75,6 +75,12 @@ npm run dev
 
 ---
 
+## Supabase (PostgreSQL) セットアップ
+
+Supabase を使用してデータベースを構築・接続する手順については、[SUPABASE.md](SUPABASE.md) をご参照ください。
+
+---
+
 ## 本番デプロイ
 
 詳細なデプロイ方法については、[DEPLOY.md](DEPLOY.md) をご参照ください。
